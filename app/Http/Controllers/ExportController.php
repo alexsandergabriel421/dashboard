@@ -7,32 +7,35 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    private function exportToCsv(string $filename, array $columns, array $rows): StreamedResponse
+    /**
+     * Função genérica para exportar qualquer tabela em CSV (UTF-8 com BOM)
+     */
+    private function exportToCsv(string $filename, array $columns, array $data)
     {
         $headers = [
-            'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"$filename\"",
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             'Cache-Control'       => 'no-store, no-cache, must-revalidate',
         ];
 
-        return new StreamedResponse(function() use ($columns, $rows) {
+        return new StreamedResponse(function () use ($columns, $data) {
             $file = fopen('php://output', 'w');
 
-            // BOM UTF-8 (resolve acentos no Excel 16)
+            // BOM UTF-8
             fwrite($file, "\xEF\xBB\xBF");
-
-            // Separador para Excel PT-BR
-            fwrite($file, "sep=;\n");
 
             // Cabeçalho
             fputcsv($file, $columns, ';');
 
             // Linhas
-            foreach ($rows as $row) {
-                $row = array_map(function($v) {
-                    if (is_null($v)) return '';
-                    if (is_numeric($v)) return $v;
-                    return str_replace(';', ',', trim((string)$v));
+            foreach ($data as $row) {
+                $row = array_map(function ($value) {
+                    if (is_null($value)) return '';
+                    if (is_string($value)) {
+                        $value = str_replace(';', ',', $value);
+                        $value = trim($value);
+                    }
+                    return $value;
                 }, $row);
 
                 fputcsv($file, $row, ';');
@@ -42,41 +45,46 @@ class ExportController extends Controller
         }, 200, $headers);
     }
 
+    /**
+     * Exportar Funcionários do banco
+     */
     public function funcionarios()
     {
-        $dados = DB::select('SELECT * FROM tbFuncionario');
-        $rows = array_map(fn($d) => [
-            $d->idFuncionario,
-            $d->nomeFuncionario,
-            $d->dateNascFuncionario
-        ], $dados);
+        $dados = DB::table('tbFuncionario')->get();
+        $array = $dados->map(fn($d) => [$d->idFuncionario, $d->nomeFuncionario, $d->dateNascFuncionario])->toArray();
 
-        return $this->exportToCsv('funcionarios.csv', ['ID', 'Nome', 'Nascimento'], $rows);
+        return $this->exportToCsv('funcionarios.csv', ['ID', 'Nome', 'Nascimento'], $array);
     }
 
+    /**
+     * Exportar Produtos do banco
+     */
     public function produtos()
     {
-        $dados = DB::select('SELECT * FROM tbProduto');
-        $rows = array_map(fn($d) => [
+        $dados = DB::table('tbProduto')->get();
+        $array = $dados->map(fn($d) => [
             $d->idProduto,
             $d->nomeProduto,
             $d->categoriaProduto,
-            number_format($d->precoProduto, 2, ',', '.')
-        ], $dados);
+            number_format($d->precoProduto,2,',','.')
+        ])->toArray();
 
-        return $this->exportToCsv('produtos.csv', ['ID', 'Produto', 'Categoria', 'Preço (R$)'], $rows);
+        return $this->exportToCsv('produtos.csv', ['ID', 'Produto', 'Categoria', 'Preço (R$)'], $array);
     }
 
+    /**
+     * Exportar Vendas do banco
+     */
     public function vendas()
     {
-        $dados = DB::select('SELECT * FROM tbVendas');
-        $rows = array_map(fn($d) => [
+        $dados = DB::table('tbVendas')->get();
+        $array = $dados->map(fn($d) => [
             $d->idVenda,
             $d->nomeProduto,
             $d->quantidade,
-            number_format($d->valorTotal, 2, ',', '.')
-        ], $dados);
+            number_format($d->valorTotal,2,',','.')
+        ])->toArray();
 
-        return $this->exportToCsv('vendas.csv', ['ID', 'Produto', 'Quantidade', 'Valor Total (R$)'], $rows);
+        return $this->exportToCsv('vendas.csv', ['ID', 'Produto', 'Quantidade', 'Valor Total (R$)'], $array);
     }
 }
