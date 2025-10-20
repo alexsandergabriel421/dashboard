@@ -3,10 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExportController;
 
-Route::get('/', function () {
+// Dashboard
+Route::get('/', function() {
     return view('dashboard');
-});
+})->name('dashboard');
 
-Route::get('/download-funcionarios', [ExportController::class, 'funcionarios'])->name('csv.funcionarios');
-Route::get('/download-produtos', [ExportController::class, 'produtos'])->name('csv.produtos');
-Route::get('/download-vendas', [ExportController::class, 'vendas'])->name('csv.vendas');
+// CSV
+Route::prefix('export')->group(function () {
+    Route::get('/funcionarios', [ExportController::class, 'funcionarios'])->name('csv.funcionarios');
+    Route::get('/produtos', [ExportController::class, 'produtos'])->name('csv.produtos');
+    Route::get('/vendas', [ExportController::class, 'vendas'])->name('csv.vendas');
+});
