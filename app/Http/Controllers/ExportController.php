@@ -2,89 +2,139 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    /**
-     * Função genérica para exportar qualquer tabela em CSV (UTF-8 com BOM)
-     */
-    private function exportToCsv(string $filename, array $columns, array $data)
-    {
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
-        ];
-
-        return new StreamedResponse(function () use ($columns, $data) {
-            $file = fopen('php://output', 'w');
-
-            // BOM UTF-8
-            fwrite($file, "\xEF\xBB\xBF");
-
-            // Cabeçalho
-            fputcsv($file, $columns, ';');
-
-            // Linhas
-            foreach ($data as $row) {
-                $row = array_map(function ($value) {
-                    if (is_null($value)) return '';
-                    if (is_string($value)) {
-                        $value = str_replace(';', ',', $value);
-                        $value = trim($value);
-                    }
-                    return $value;
-                }, $row);
-
-                fputcsv($file, $row, ';');
-            }
-
-            fclose($file);
-        }, 200, $headers);
-    }
-
-    /**
-     * Exportar Funcionários do banco
-     */
+    // CSV FUNCIONÁRIOS (stream para memória reduzida)
     public function funcionarios()
     {
-        $dados = DB::table('tbFuncionario')->get();
-        $array = $dados->map(fn($d) => [$d->idFuncionario, $d->nomeFuncionario, $d->dateNascFuncionario])->toArray();
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="funcionarios.csv"',
+        ];
 
-        return $this->exportToCsv('funcionarios.csv', ['ID', 'Nome', 'Nascimento'], $array);
+        $callback = function () {
+            $out = fopen('php://output', 'w');
+            // BOM para Excel interpretar UTF-8 corretamente
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Cabeçalho CSV
+            fputcsv($out, ['ID', 'Nome', 'Cargo', 'Salário'], ';');
+
+            $funcionarios = DB::table('tbfuncionario')->orderBy('id')->cursor();
+            foreach ($funcionarios as $f) {
+                // usar os nomes reais do banco
+                fputcsv($out, [
+                    $f->id,
+                    $f->nomeFuncionario,
+                    $f->cargoFuncionario,
+                    $f->salarioFuncionario
+                ], ';');
+            }
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
-    /**
-     * Exportar Produtos do banco
-     */
+    // CSV PRODUTOS
     public function produtos()
     {
-        $dados = DB::table('tbProduto')->get();
-        $array = $dados->map(fn($d) => [
-            $d->idProduto,
-            $d->nomeProduto,
-            $d->categoriaProduto,
-            number_format($d->precoProduto,2,',','.')
-        ])->toArray();
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="produtos.csv"',
+        ];
 
-        return $this->exportToCsv('produtos.csv', ['ID', 'Produto', 'Categoria', 'Preço (R$)'], $array);
+        $callback = function () {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, ['ID', 'Produto', 'Preço', 'Categoria'], ';');
+
+            $produtos = DB::table('tbproduto')->orderBy('id')->cursor();
+            foreach ($produtos as $p) {
+                fputcsv($out, [
+                    $p->id,
+                    $p->nomeProduto,
+                    $p->precoProduto,
+                    $p->categoria
+                ], ';');
+            }
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
-    /**
-     * Exportar Vendas do banco
-     */
+    // CSV VENDAS (com nome do produto via join)
     public function vendas()
     {
-        $dados = DB::table('tbVendas')->get();
-        $array = $dados->map(fn($d) => [
-            $d->idVenda,
-            $d->nomeProduto,
-            $d->quantidade,
-            number_format($d->valorTotal,2,',','.')
-        ])->toArray();
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="vendas.csv"',
+        ];
 
-        return $this->exportToCsv('vendas.csv', ['ID', 'Produto', 'Quantidade', 'Valor Total (R$)'], $array);
+        $callback = function () {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, ['ID', 'Produto (id)', 'Nome do Produto', 'Quantidade', 'Total', 'Data'], ';');
+
+            // traz vendas com nome do produto (join)
+            $vendas = DB::table('tbvendas')
+                ->leftJoin('tbproduto', 'tbvendas.idProduto', '=', 'tbproduto.id')
+                ->select('tbvendas.*', 'tbproduto.nomeProduto as nomeProduto')
+                ->orderBy('tbvendas.id')
+                ->cursor();
+
+            foreach ($vendas as $v) {
+                fputcsv($out, [
+                    $v->id,
+                    $v->idProduto,
+                    $v->nomeProduto ?? '',
+                    $v->quantidade,
+                    $v->valorTotal,
+                    $v->dataVenda,
+                ], ';');
+            }
+
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // --------------------------
+    // PDF
+    // --------------------------
+
+    public function funcionariosPdf()
+    {
+        $funcionarios = DB::table('tbfuncionario')->orderBy('id')->get();
+        // certifique-se que a view pdf.funcionarios use $f->id, $f->nomeFuncionario etc
+        $pdf = Pdf::loadView('pdf.funcionarios', compact('funcionarios'));
+        return $pdf->download('funcionarios.pdf');
+    }
+
+    public function produtosPdf()
+    {
+        $produtos = DB::table('tbproduto')->orderBy('id')->get();
+        $pdf = Pdf::loadView('pdf.produtos', compact('produtos'));
+        return $pdf->download('produtos.pdf');
+    }
+
+    public function vendasPdf()
+    {
+        // traga o nome do produto junto para ser mais legível no PDF
+        $vendas = DB::table('tbvendas')
+            ->leftJoin('tbproduto', 'tbvendas.idProduto', '=', 'tbproduto.id')
+            ->select('tbvendas.*', 'tbproduto.nomeProduto as nomeProduto')
+            ->orderBy('tbvendas.id')
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.vendas', compact('vendas'));
+        return $pdf->download('vendas.pdf');
     }
 }

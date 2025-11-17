@@ -1,181 +1,179 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard - Frutas & Funcionários</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+@extends('layouts.app')
+
+@section('content')
 
 <style>
-body {
-    background-color: #f4f6f9;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0; padding: 0;
-}
-h1 {
-    color: #2c3e50;
-    text-align: center;
-    font-weight: 600;
-    margin: 30px 0;
-}
-.cards {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 40px;
-}
-.card {
-    flex: 1 1 200px;
-    max-width: 220px;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    text-align: center;
-    transition: transform 0.3s, box-shadow 0.3s;
-    color: #fff;
-}
-.card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-.card i {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-}
-.card h3 {
-    font-size: 2rem;
-    margin-bottom: 5px;
-}
-.export-buttons {
-    text-align: center;
-    margin-bottom: 50px;
-}
-.export-buttons a {
-    min-width: 160px;
-    margin: 5px;
-}
-.charts {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 30px;
-    margin-bottom: 50px;
-}
-.chart {
-    width: 100%;
-    max-width: 500px;
-    height: 400px;
-    background:#fff;
-    border-radius:12px;
-    box-shadow:0 6px 20px rgba(0,0,0,0.1);
-    padding:20px;
-}
+    /* === FIX FINAL DOS GRÁFICOS === */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+
+    canvas {
+        min-height: 280px !important;
+        width: 100% !important;
+    }
 </style>
-</head>
-<body>
 
-<h1>📊 Dashboard - Frutas & Funcionários</h1>
+<div class="container mt-4">
 
-<!-- CARDS DE AGREGAÇÃO -->
-<div class="cards">
-    <div class="card bg-primary">
-        <i class="fas fa-users"></i>
-        <h3>{{ $totalFuncionarios ?? 0 }}</h3>
-        <p>Total de Funcionários</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Dashboard</h2>
+
+        <div>
+            <a href="{{ route('export.funcionarios.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Funcionários</a>
+            <a href="{{ route('export.funcionarios.pdf') }}" class="btn btn-sm btn-outline-danger me-3">PDF Funcionários</a>
+
+            <a href="{{ route('export.produtos.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Produtos</a>
+            <a href="{{ route('export.produtos.pdf') }}" class="btn btn-sm btn-outline-danger me-3">PDF Produtos</a>
+
+            <a href="{{ route('export.vendas.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Vendas</a>
+            <a href="{{ route('export.vendas.pdf') }}" class="btn btn-sm btn-outline-danger">PDF Vendas</a>
+        </div>
     </div>
-    <div class="card bg-success">
-        <i class="fas fa-boxes-stacked"></i>
-        <h3>{{ $totalProdutos ?? 0 }}</h3>
-        <p>Total de Produtos</p>
+
+    <!-- CARDS -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-lg border-0 p-3">
+                <h6 class="text-muted">Total Funcionários</h6>
+                <h2 class="fw-bold">{{ $totalFuncionarios }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-lg border-0 p-3">
+                <h6 class="text-muted">Total Produtos</h6>
+                <h2 class="fw-bold">{{ $totalProdutos }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-lg border-0 p-3">
+                <h6 class="text-muted">Total Vendas</h6>
+                <h2 class="fw-bold">{{ $totalVendas }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-lg border-0 p-3">
+                <h6 class="text-muted">Média dos Preços</h6>
+                <h2 class="fw-bold">R$ {{ number_format($mediaPrecoProdutos, 2, ',', '.') }}</h2>
+            </div>
+        </div>
+
     </div>
-    <div class="card bg-warning text-dark">
-        <i class="fas fa-shopping-cart"></i>
-        <h3>{{ $totalVendas ?? 0 }}</h3>
-        <p>Total de Vendas</p>
+
+
+    <!-- GRÁFICOS -->
+    <div class="row g-4">
+
+        <!-- GRÁFICO DE VENDAS -->
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 p-4">
+                <h5 class="text-center mb-3">Vendas por Produto</h5>
+                <div class="chart-container">
+                    <canvas id="chartVendas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICO DE FUNCIONÁRIOS -->
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 p-4">
+                <h5 class="text-center mb-3">Funcionários por Cargo</h5>
+                <div class="chart-container">
+                    <canvas id="chartFuncionarios"></canvas>
+                </div>
+            </div>
+        </div>
+
     </div>
-    <div class="card bg-info">
-        <i class="fas fa-dollar-sign"></i>
-        <h3>R$ {{ number_format($mediaPrecoProdutos ?? 0,2,',','.') }}</h3>
-        <p>Média de Preço</p>
-    </div>
+
 </div>
+@endsection
 
-<!-- BOTÕES DE EXPORTAÇÃO CSV -->
-<div class="export-buttons">
-    <a href="{{ route('csv.funcionarios') }}" class="btn btn-primary"><i class="fas fa-file-csv"></i> CSV Funcionários</a>
-    <a href="{{ route('csv.produtos') }}" class="btn btn-success"><i class="fas fa-file-csv"></i> CSV Produtos</a>
-    <a href="{{ route('csv.vendas') }}" class="btn btn-warning"><i class="fas fa-file-csv"></i> CSV Vendas</a>
-</div>
 
-<!-- GRÁFICOS (dados estáticos apenas para visualização) -->
-<div class="charts">
-    <div id="grafico1" class="chart"></div>
-    <div id="grafico2" class="chart"></div>
-    <div id="grafico3" class="chart"></div>
-    <div id="grafico4" class="chart"></div>
-</div>
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-function initCharts() {
-    // Gráfico 1 - Pizza
-    var g1 = echarts.init(document.getElementById('grafico1'));
-    g1.setOption({
-        title: { text: 'Vendas de Frutas', left: 'center' },
-        tooltip: { trigger: 'item' },
-        legend: { bottom: '5%' },
-        series: [{
-            name: 'Vendas',
-            type: 'pie',
-            radius: '60%',
-            data: [
-                { value: 40, name: 'Maçã' },
-                { value: 30, name: 'Banana' },
-                { value: 20, name: 'Laranja' },
-                { value: 10, name: 'Uva' }
-            ],
-            emphasis: { itemStyle: { shadowBlur: 15, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' } }
-        }]
-    });
+document.addEventListener("DOMContentLoaded", function () {
 
-    // Gráfico 2 - Barra
-    var g2 = echarts.init(document.getElementById('grafico2'));
-    g2.setOption({
-        title: { text: 'Funcionários por Mês', left: 'center' },
-        xAxis: { type: 'category', data: ['Jan','Fev','Mar','Abr','Mai','Jun'] },
-        yAxis: { type: 'value' },
-        series: [{ data: [3,5,2,6,4,7], type: 'bar', colorBy:'data' }]
-    });
+    /* =====================================================================
+                        DADOS DO BANCO
+    ===================================================================== */
+    const vendasLabels = @json($labelsVendas);
+    const vendasValues = @json($valuesVendas);
 
-    // Gráfico 3 - Linha
-    var g3 = echarts.init(document.getElementById('grafico3'));
-    g3.setOption({
-        title: { text: 'Preço Médio Produtos', left:'center' },
-        xAxis: { type:'category', data:['Produto A','Produto B','Produto C','Produto D'] },
-        yAxis: { type:'value' },
-        series: [{ data:[10,15,8,20], type:'line', smooth:true }]
-    });
+    const funcLabels   = @json($labelsFuncionarios);
+    const funcValues   = @json($valuesFuncionarios);
 
-    // Gráfico 4 - Radar
-    var g4 = echarts.init(document.getElementById('grafico4'));
-    g4.setOption({
-        title: { text:'Distribuição de Vendas', left:'center' },
-        radar: {
-            indicator: [
-                { name: 'Maçã', max:50 },
-                { name: 'Banana', max:50 },
-                { name: 'Laranja', max:50 },
-                { name: 'Uva', max:50 }
-            ]
-        },
-        series: [{ name: 'Vendas', type: 'radar', data:[{ value:[40,30,20,10], name:'Frutas' }] }]
-    });
-}
 
-initCharts();
-window.addEventListener('resize', () => { initCharts(); });
+
+    /* =====================================================================
+                        GRÁFICO DE VENDAS
+    ===================================================================== */
+    const vendasCtx = document.getElementById("chartVendas");
+
+    if (vendasCtx) {
+        new Chart(vendasCtx, {
+            type: "bar",
+            data: {
+                labels: vendasLabels,
+                datasets: [{
+                    label: "Quantidade Vendida",
+                    data: vendasValues,
+                    backgroundColor: "rgba(54, 162, 235, 0.7)",
+                    borderColor: "rgba(54, 162, 235, 1)",
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+
+
+    /* =====================================================================
+                    GRÁFICO DE FUNCIONÁRIOS POR CARGO
+    ===================================================================== */
+    const funcCtx = document.getElementById("chartFuncionarios");
+
+    if (funcCtx) {
+        new Chart(funcCtx, {
+            type: "doughnut",
+            data: {
+                labels: funcLabels,
+                datasets: [{
+                    data: funcValues,
+                    backgroundColor: [
+                        "#FF6384",
+                        "#36A2EB",
+                        "#FFCE56",
+                        "#4BC0C0",
+                        "#9966FF",
+                        "#FF9F40"
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: "bottom" }
+                }
+            }
+        });
+    }
+
+});
 </script>
-
-</body>
-</html>
+@endsection
