@@ -22,9 +22,10 @@ class ProdutoController extends Controller
     public function store(Request $request)
     {
         Produto::create([
-            'nomeProduto'  => $request->nomeProduto,
-            'precoProduto' => $request->precoProduto,
-            'categoria'    => $request->categoria,   // ✅ AGORA SALVA CATEGORIA
+            'nome'      => $request->nomeProduto,
+            'preco'     => $request->precoProduto,
+            'categoria' => $request->categoria,
+            'descricao' => $request->descricao, // opcional
         ]);
 
         return redirect()->route('produtos.index');
@@ -41,9 +42,10 @@ class ProdutoController extends Controller
         $produto = Produto::findOrFail($id);
 
         $produto->update([
-            'nomeProduto'  => $request->nomeProduto,
-            'precoProduto' => $request->precoProduto,
-            'categoria'    => $request->categoria,   // ✅ ATUALIZA CATEGORIA
+            'nome'      => $request->nomeProduto,
+            'preco'     => $request->precoProduto,
+            'categoria' => $request->categoria,
+            'descricao' => $request->descricao,
         ]);
 
         return redirect()->route('produtos.index');
@@ -55,23 +57,18 @@ class ProdutoController extends Controller
         return redirect()->route('produtos.index');
     }
 
-    /* ============================
-       EXPORTAR CSV (com categoria)
-    ============================ */
     public function exportCsv()
     {
         $produtos = Produto::all();
-
         $csv = "ID;Nome;Preço;Categoria\n";
 
         foreach ($produtos as $p) {
             $csv .= implode(';', [
                 $p->id,
-                $p->nomeProduto,
-                number_format($p->precoProduto, 2, '.', ''), // Excel-friendly
-                $p->categoria, // ✅ INCLUÍDO
-            ]);
-            $csv .= "\n";
+                $p->nome,
+                number_format($p->preco, 2, '.', ''),
+                $p->categoria
+            ]) . "\n";
         }
 
         return response("\xEF\xBB\xBF".$csv)
@@ -79,9 +76,6 @@ class ProdutoController extends Controller
             ->header('Content-Disposition', 'attachment; filename=produtos.csv');
     }
 
-    /* ============================
-       EXPORTAR PDF (com categoria)
-    ============================ */
     public function exportPdf()
     {
         $produtos = Produto::all();

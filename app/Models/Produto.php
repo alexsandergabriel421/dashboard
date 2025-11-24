@@ -9,13 +9,14 @@ class Produto extends Model
     protected $table = 'tbproduto';
 
     protected $fillable = [
-        'nomeProduto',
-        'precoProduto',
-        'categoria'
+        'nome',
+        'preco',
+        'categoria',
+        'descricao',
     ];
 
     public function vendas()
     {
-        return $this->hasMany(Venda::class, 'idProduto');
+        return $this->hasMany(Venda::class, 'produto_id'); // CORRETO
     }
 }

@@ -23,40 +23,42 @@ class VendaController extends Controller
 
     public function store(Request $request)
     {
-        Venda::create([
-            'idProduto'  => $request->idProduto,
-            'quantidade' => $request->quantidade,
-            'valorTotal' => $request->valorTotal,
-            'dataVenda'  => $request->dataVenda ?? now(),
+        $request->validate([
+            'produto_id' => 'required|exists:tbproduto,id',
+            'quantidade' => 'required|integer|min:1',
+            'valorTotal' => 'required|numeric|min:0',
+            'dataVenda'  => 'nullable|date'
         ]);
 
-        return redirect()->route('vendas.index');
+        Venda::create([
+            'produto_id' => $request->produto_id,
+            'quantidade' => $request->quantidade,
+            'valorTotal' => $request->valorTotal,
+            'dataVenda'  => $request->dataVenda ?? now()->toDateString(),
+        ]);
+
+        return redirect()->route('vendas.index')
+            ->with('success', 'Venda registrada com sucesso!');
     }
 
     public function exportCsv()
     {
         $vendas = Venda::with('produto')->get();
 
-        $bom = "\xEF\xBB\xBF";
-        $csv  = $bom;
+        $csv  = "\xEF\xBB\xBF";
         $csv .= "ID;Produto;Quantidade;Total;Data\n";
 
         foreach ($vendas as $v) {
 
-            if ($v->dataVenda) {
-                $data = \Carbon\Carbon::parse($v->dataVenda)->format('d/m/Y');
-                $data = '="' . $data . '"';
-            } else {
-                $data = '"---"';
-            }
-
-            $valor = number_format($v->valorTotal, 2, '.', '');
+            $data = $v->dataVenda
+                ? '="' . \Carbon\Carbon::parse($v->dataVenda)->format('d/m/Y') . '"'
+                : '---';
 
             $csv .= implode(';', [
                 $v->id,
-                $v->produto->nomeProduto ?? 'Produto removido',
+                $v->produto->nome ?? 'Produto removido',
                 $v->quantidade,
-                $valor,
+                number_format($v->valorTotal, 2, '.', ''),
                 $data
             ]) . "\n";
         }
@@ -70,9 +72,9 @@ class VendaController extends Controller
     {
         $vendas = Venda::with('produto')->get();
 
-        $pdf = Pdf::loadView('exports.vendas_pdf', compact('vendas'))
-                  ->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('vendas.pdf', compact('vendas'))
+                    ->setPaper('a4', 'portrait');
 
-        return $pdf->download('vendas.pdf');
+        return $pdf->download('relatorio_vendas.pdf');
     }
 }

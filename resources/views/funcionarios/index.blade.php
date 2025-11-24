@@ -7,6 +7,11 @@
     + Novo Funcionário
 </a>
 
+<div class="mb-3">
+    <a href="{{ route('export.funcionarios.csv') }}" class="btn btn-success">Exportar CSV</a>
+    <a href="{{ route('export.funcionarios.pdf') }}" class="btn btn-danger">Exportar PDF</a>
+</div>
+
 <table class="table table-striped table-bordered">
     <thead>
         <tr>

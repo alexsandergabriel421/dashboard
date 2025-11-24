@@ -1,179 +1,103 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="container">
 
-<style>
-    /* === FIX FINAL DOS GRÁFICOS === */
-    .chart-container {
-        position: relative;
-        height: 300px;
-        width: 100%;
-    }
+    <h1 class="mb-4">Dashboard</h1>
 
-    canvas {
-        min-height: 280px !important;
-        width: 100% !important;
-    }
-</style>
-
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Dashboard</h2>
-
-        <div>
-            <a href="{{ route('export.funcionarios.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Funcionários</a>
-            <a href="{{ route('export.funcionarios.pdf') }}" class="btn btn-sm btn-outline-danger me-3">PDF Funcionários</a>
-
-            <a href="{{ route('export.produtos.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Produtos</a>
-            <a href="{{ route('export.produtos.pdf') }}" class="btn btn-sm btn-outline-danger me-3">PDF Produtos</a>
-
-            <a href="{{ route('export.vendas.csv') }}" class="btn btn-sm btn-outline-primary me-1">CSV Vendas</a>
-            <a href="{{ route('export.vendas.pdf') }}" class="btn btn-sm btn-outline-danger">PDF Vendas</a>
-        </div>
-    </div>
-
-    <!-- CARDS -->
-    <div class="row g-4 mb-4">
-
+    {{-- CARDS --}}
+    <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card shadow-lg border-0 p-3">
-                <h6 class="text-muted">Total Funcionários</h6>
-                <h2 class="fw-bold">{{ $totalFuncionarios }}</h2>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-lg border-0 p-3">
-                <h6 class="text-muted">Total Produtos</h6>
-                <h2 class="fw-bold">{{ $totalProdutos }}</h2>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-lg border-0 p-3">
-                <h6 class="text-muted">Total Vendas</h6>
-                <h2 class="fw-bold">{{ $totalVendas }}</h2>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-lg border-0 p-3">
-                <h6 class="text-muted">Média dos Preços</h6>
-                <h2 class="fw-bold">R$ {{ number_format($mediaPrecoProdutos, 2, ',', '.') }}</h2>
-            </div>
-        </div>
-
-    </div>
-
-
-    <!-- GRÁFICOS -->
-    <div class="row g-4">
-
-        <!-- GRÁFICO DE VENDAS -->
-        <div class="col-md-6">
-            <div class="card shadow-lg border-0 p-4">
-                <h5 class="text-center mb-3">Vendas por Produto</h5>
-                <div class="chart-container">
-                    <canvas id="chartVendas"></canvas>
+            <div class="card text-bg-primary shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Funcionários</h5>
+                    <p class="card-text fs-3">{{ $totalFuncionarios }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- GRÁFICO DE FUNCIONÁRIOS -->
-        <div class="col-md-6">
-            <div class="card shadow-lg border-0 p-4">
-                <h5 class="text-center mb-3">Funcionários por Cargo</h5>
-                <div class="chart-container">
-                    <canvas id="chartFuncionarios"></canvas>
+        <div class="col-md-3">
+            <div class="card text-bg-success shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Produtos</h5>
+                    <p class="card-text fs-3">{{ $totalProdutos }}</p>
                 </div>
             </div>
         </div>
 
+        <div class="col-md-3">
+            <div class="card text-bg-warning shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Vendas</h5>
+                    <p class="card-text fs-3">{{ $totalVendas }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-bg-danger shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Preço Médio</h5>
+                    <p class="card-text fs-3">R$ {{ number_format($mediaPrecoProdutos, 2, ',', '.') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- GRÁFICO — VENDAS --}}
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">Vendas por Produto</h4>
+            <canvas id="chartVendas"></canvas>
+        </div>
+    </div>
+
+    {{-- GRÁFICO — FUNCIONÁRIOS --}}
+    <div class="card shadow">
+        <div class="card-body">
+            <h4 class="mb-3">Funcionários por Cargo</h4>
+            <canvas id="chartFuncionarios"></canvas>
+        </div>
     </div>
 
 </div>
 @endsection
 
 
-
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+const vendasLabels = @json($labelsVendas);
+const vendasValues = @json($valuesVendas);
 
-    /* =====================================================================
-                        DADOS DO BANCO
-    ===================================================================== */
-    const vendasLabels = @json($labelsVendas);
-    const vendasValues = @json($valuesVendas);
+const funcLabels = @json($labelsFuncionarios);
+const funcValues = @json($valuesFuncionarios);
 
-    const funcLabels   = @json($labelsFuncionarios);
-    const funcValues   = @json($valuesFuncionarios);
+new Chart(document.getElementById('chartVendas'), {
+    type: 'bar',
+    data: {
+        labels: vendasLabels,
+        datasets: [{
+            label: 'Total Vendido',
+            data: vendasValues,
+            borderWidth: 2
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+});
 
-
-
-    /* =====================================================================
-                        GRÁFICO DE VENDAS
-    ===================================================================== */
-    const vendasCtx = document.getElementById("chartVendas");
-
-    if (vendasCtx) {
-        new Chart(vendasCtx, {
-            type: "bar",
-            data: {
-                labels: vendasLabels,
-                datasets: [{
-                    label: "Quantidade Vendida",
-                    data: vendasValues,
-                    backgroundColor: "rgba(54, 162, 235, 0.7)",
-                    borderColor: "rgba(54, 162, 235, 1)",
-                    borderWidth: 2,
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-
-
-    /* =====================================================================
-                    GRÁFICO DE FUNCIONÁRIOS POR CARGO
-    ===================================================================== */
-    const funcCtx = document.getElementById("chartFuncionarios");
-
-    if (funcCtx) {
-        new Chart(funcCtx, {
-            type: "doughnut",
-            data: {
-                labels: funcLabels,
-                datasets: [{
-                    data: funcValues,
-                    backgroundColor: [
-                        "#FF6384",
-                        "#36A2EB",
-                        "#FFCE56",
-                        "#4BC0C0",
-                        "#9966FF",
-                        "#FF9F40"
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: "bottom" }
-                }
-            }
-        });
-    }
-
+new Chart(document.getElementById('chartFuncionarios'), {
+    type: 'pie',
+    data: {
+        labels: funcLabels,
+        datasets: [{
+            label: 'Funcionários',
+            data: funcValues,
+            borderWidth: 2
+        }]
+    },
+    options: { responsive: true }
 });
 </script>
 @endsection

@@ -7,13 +7,10 @@
     + Nova Venda
 </a>
 
-<a href="{{ route('export.vendas.csv') }}" class="btn btn-success mb-3">
-    Exportar CSV
-</a>
-
-<a href="{{ route('export.vendas.pdf') }}" class="btn btn-danger mb-3">
-    Exportar PDF
-</a>
+<div class="mb-3">
+    <a href="{{ route('export.vendas.csv') }}" class="btn btn-success">Exportar CSV</a>
+    <a href="{{ route('export.vendas.pdf') }}" class="btn btn-danger">Exportar PDF</a>
+</div>
 
 <table class="table table-striped table-bordered">
     <thead>
@@ -29,10 +26,12 @@
         @foreach($vendas as $v)
         <tr>
             <td>{{ $v->id }}</td>
-            <td>{{ $v->produto->nomeProduto ?? 'Produto removido' }}</td>
+            <td>{{ $v->produto->nome ?? 'Produto removido' }}</td>
             <td>{{ $v->quantidade }}</td>
-            <td>R$ {{ number_format($v->valorTotal, 2, ',', '.') }}</td>
-            <td>{{ $v->dataVenda ? $v->dataVenda->format('d/m/Y') : '---' }}</td>
+            <td>R$ {{ number_format($v->valorTotal,2,',','.') }}</td>
+            <td>
+                {{ $v->dataVenda ? $v->dataVenda->format('d/m/Y') : '---' }}
+            </td>
         </tr>
         @endforeach
     </tbody>

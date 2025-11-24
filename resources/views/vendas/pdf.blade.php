@@ -29,14 +29,9 @@
         @foreach($vendas as $v)
         <tr>
             <td>{{ $v->id }}</td>
-
-            {{-- Nome do produto (coluna correta é "nome") --}}
             <td>{{ $v->produto->nome ?? 'Produto removido' }}</td>
-
             <td>{{ $v->quantidade }}</td>
-
             <td>R$ {{ number_format($v->valorTotal, 2, ',', '.') }}</td>
-
             <td>
                 @if($v->dataVenda)
                     {{ \Carbon\Carbon::parse($v->dataVenda)->format('d/m/Y') }}

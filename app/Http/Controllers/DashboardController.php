@@ -10,34 +10,34 @@ class DashboardController extends Controller
 {
     public function index()
     {
-
-
-        
         /* ============================
-             CARDS
+            CARDS
         ============================ */
         $totalFuncionarios  = Funcionario::count();
         $totalProdutos      = Produto::count();
         $totalVendas        = Venda::count();
-        $mediaPrecoProdutos = Produto::avg('precoProduto');
+        $mediaPrecoProdutos = Produto::avg('preco') ?? 0; // CORRIGIDO
 
 
         /* ===========================================
              GRÁFICO — VENDAS AGRUPADAS POR PRODUTO
         ============================================ */
         $vendas = Venda::with('produto')
-            ->selectRaw('idProduto, SUM(quantidade) as total')
-            ->groupBy('idProduto')
+            ->select('produto_id') // CORRIGIDO
+            ->selectRaw('SUM(quantidade) as total')
+            ->groupBy('produto_id')
             ->get();
 
-        // DEBUG — PARA VER O QUE ESTÁ VINDO
-        // dd($vendas);
-
+        // Labels corretos (nome do produto)
         $labelsVendas = $vendas->map(function ($v) {
-            return $v->produto->nomeProduto ?? 'Produto removido';
-        });
+            return $v->produto->nome ?? 'Produto removido'; // CORRIGIDO
+        })->values()->toArray();
 
-        $valuesVendas = $vendas->pluck('total');
+        // Valores
+        $valuesVendas = $vendas->pluck('total')
+            ->map(fn($x) => (int) $x)
+            ->values()
+            ->toArray();
 
 
         /* ===========================================
@@ -48,10 +48,13 @@ class DashboardController extends Controller
             ->groupBy('cargoFuncionario')
             ->get();
 
-        $labelsFuncionarios = $cargoData->pluck('cargoFuncionario');
-        $valuesFuncionarios = $cargoData->pluck('total');
+        $labelsFuncionarios = $cargoData->pluck('cargoFuncionario')->values()->toArray();
+        $valuesFuncionarios = $cargoData->pluck('total')->map(fn($x) => (int)$x)->values()->toArray();
 
 
+        /* ===========================================
+             RETORNO PARA A VIEW
+        ============================================ */
         return view('dashboard', compact(
             'totalFuncionarios',
             'totalProdutos',

@@ -7,9 +7,9 @@
     @csrf
 
     <label>Produto</label>
-    <select name="idProduto" class="form-control mb-2" required>
+    <select name="produto_id" class="form-control mb-2" required>
         @foreach($produtos as $p)
-            <option value="{{ $p->id }}">{{ $p->nomeProduto }}</option>
+            <option value="{{ $p->id }}">{{ $p->nome }}</option>
         @endforeach
     </select>
 
