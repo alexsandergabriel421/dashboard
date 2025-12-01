@@ -5,16 +5,48 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FuncionarioController;
 use App\Http\Controllers\ProdutoController;
 use App\Http\Controllers\VendaController;
-
+use App\Http\Controllers\AuthController;
 
 
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard
+| ROTA INICIAL → LOGIN
 |--------------------------------------------------------------------------
 */
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/', function () {
+    return redirect('/login');
+});
+
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTENTICAÇÃO
+|--------------------------------------------------------------------------
+*/
+
+// Páginas (views)
+Route::get('/login', [AuthController::class, 'loginPage'])->name('login');
+Route::get('/register', [AuthController::class, 'registerPage'])->name('register');
+
+// Ações
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
+
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+
+
+
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD (PROTEGIDO)
+|--------------------------------------------------------------------------
+*/
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
+
 
 
 /*
@@ -22,7 +54,7 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 | FUNCIONÁRIOS
 |--------------------------------------------------------------------------
 */
-Route::prefix('funcionarios')->group(function () {
+Route::prefix('funcionarios')->middleware('auth')->group(function () {
     Route::get('/', [FuncionarioController::class, 'index'])->name('funcionarios.index');
     Route::get('/create', [FuncionarioController::class, 'create'])->name('funcionarios.create');
     Route::post('/store', [FuncionarioController::class, 'store'])->name('funcionarios.store');
@@ -31,16 +63,14 @@ Route::prefix('funcionarios')->group(function () {
     Route::get('/{id}/delete', [FuncionarioController::class, 'destroy'])->name('funcionarios.delete');
 });
 
-/*
-|--------------------------------------------------------------------------
-| EXPORTAÇÕES Funcionários
-|--------------------------------------------------------------------------
-*/
-Route::get('/export/funcionarios/csv', [FuncionarioController::class, 'exportCsv'])
-    ->name('export.funcionarios.csv');
+// Exportações Funcionários
+Route::middleware('auth')->group(function () {
+    Route::get('/export/funcionarios/csv', [FuncionarioController::class, 'exportCsv'])
+        ->name('export.funcionarios.csv');
 
-Route::get('/export/funcionarios/pdf', [FuncionarioController::class, 'exportPdf'])
-    ->name('export.funcionarios.pdf');
+    Route::get('/export/funcionarios/pdf', [FuncionarioController::class, 'exportPdf'])
+        ->name('export.funcionarios.pdf');
+});
 
 
 
@@ -49,7 +79,7 @@ Route::get('/export/funcionarios/pdf', [FuncionarioController::class, 'exportPdf
 | PRODUTOS
 |--------------------------------------------------------------------------
 */
-Route::prefix('produtos')->group(function () {
+Route::prefix('produtos')->middleware('auth')->group(function () {
     Route::get('/', [ProdutoController::class, 'index'])->name('produtos.index');
     Route::get('/create', [ProdutoController::class, 'create'])->name('produtos.create');
     Route::post('/store', [ProdutoController::class, 'store'])->name('produtos.store');
@@ -58,16 +88,14 @@ Route::prefix('produtos')->group(function () {
     Route::get('/{id}/delete', [ProdutoController::class, 'destroy'])->name('produtos.delete');
 });
 
-/*
-|--------------------------------------------------------------------------
-| EXPORTAÇÕES Produtos
-|--------------------------------------------------------------------------
-*/
-Route::get('/export/produtos/csv', [ProdutoController::class, 'exportCsv'])
-    ->name('export.produtos.csv');
+// Exportações Produtos
+Route::middleware('auth')->group(function () {
+    Route::get('/export/produtos/csv', [ProdutoController::class, 'exportCsv'])
+        ->name('export.produtos.csv');
 
-Route::get('/export/produtos/pdf', [ProdutoController::class, 'exportPdf'])
-    ->name('export.produtos.pdf');
+    Route::get('/export/produtos/pdf', [ProdutoController::class, 'exportPdf'])
+        ->name('export.produtos.pdf');
+});
 
 
 
@@ -76,7 +104,7 @@ Route::get('/export/produtos/pdf', [ProdutoController::class, 'exportPdf'])
 | VENDAS
 |--------------------------------------------------------------------------
 */
-Route::prefix('vendas')->group(function () {
+Route::prefix('vendas')->middleware('auth')->group(function () {
     Route::get('/', [VendaController::class, 'index'])->name('vendas.index');
     Route::get('/create', [VendaController::class, 'create'])->name('vendas.create');
     Route::post('/store', [VendaController::class, 'store'])->name('vendas.store');
@@ -85,14 +113,11 @@ Route::prefix('vendas')->group(function () {
     Route::get('/{id}/delete', [VendaController::class, 'destroy'])->name('vendas.delete');
 });
 
-/*
-|--------------------------------------------------------------------------
-| EXPORTAÇÕES Vendas (CORRIGIDO)
-|--------------------------------------------------------------------------
-*/
-Route::get('/export/vendas/csv', [VendaController::class, 'exportCsv'])
-    ->name('export.vendas.csv');   // ← nome corrigido
+// Exportações Vendas
+Route::middleware('auth')->group(function () {
+    Route::get('/export/vendas/csv', [VendaController::class, 'exportCsv'])
+        ->name('export.vendas.csv');
 
-Route::get('/export/vendas/pdf', [VendaController::class, 'exportPdf'])
-    ->name('export.vendas.pdf');   // ← nome corrigido
-    
+    Route::get('/export/vendas/pdf', [VendaController::class, 'exportPdf'])
+        ->name('export.vendas.pdf');
+});
